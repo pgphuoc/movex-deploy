@@ -47,29 +47,18 @@ load_env() {
     
     log_info "Loading environment from: $env_file"
     
-    # Export variables from .env file (ignoring comments and empty lines)
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Skip empty lines
-        [[ -z "$line" ]] && continue
-        # Skip comments (lines starting with #)
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        # Skip lines without = sign
-        [[ "$line" != *"="* ]] && continue
-        
-        # Extract key and value
-        key="${line%%=*}"
-        value="${line#*=}"
-        
-        # Remove leading/trailing whitespace from key
-        key=$(echo "$key" | xargs)
-        
-        # Skip if key is empty or starts with #
-        [[ -z "$key" ]] && continue
-        [[ "$key" =~ ^# ]] && continue
-        
-        # Export the variable
-        export "$key"="$value"
-    done < "$env_file"
+    # Use grep to get only valid KEY=VALUE lines (key must start with letter/underscore)
+    # This filters out comments, empty lines, and invalid lines
+    local temp_env=$(mktemp)
+    grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$env_file" > "$temp_env" 2>/dev/null || true
+    
+    # Source the cleaned env file
+    set -a
+    source "$temp_env"
+    set +a
+    
+    # Cleanup
+    rm -f "$temp_env"
     
     log_success "Environment loaded successfully"
 }
