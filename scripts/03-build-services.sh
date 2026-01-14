@@ -76,30 +76,39 @@ build_project() {
     local project_name="$1"
     local project_dir="${SRC_DIR}/${project_name}"
     local log_file="${LOG_DIR}/${project_name}-build.log"
-    
+
     if [[ ! -d "${project_dir}" ]]; then
         log_error "Project directory not found: ${project_dir}"
         return 1
     fi
-    
+
     log_info "Building ${project_name}..."
     cd "${project_dir}"
-    
+
     # Copy environment config from config folder (skip for core and migration)
     if [[ "${project_name}" != "movex-be-core" && "${project_name}" != "movex-be-migration" ]]; then
         copy_backend_env "${project_name}"
     fi
-    
+
     # Check if gradlew exists
     if [[ ! -f "./gradlew" ]]; then
         log_error "gradlew not found in ${project_dir}"
         return 1
     fi
-    
+
     chmod +x ./gradlew
-    
-    # Build project (skip tests and code quality checks for faster build)
-    if ./gradlew clean build -x test -x compileTestJava -x spotbugsMain -x spotbugsTest -x checkstyleMain -x checkstyleTest -x pmdMain -x pmdTest > "${log_file}" 2>&1; then
+
+    # Build project - skip tests; quality checks disabled via gradle.properties or command
+    # First try with quality check exclusions (for projects that have them)
+    log_info "  Attempting build with quality check exclusions..."
+    if ./gradlew clean build -x test -x pmdMain -x pmdTest -x spotbugsMain -x spotbugsTest -x checkstyleMain -x checkstyleTest > "${log_file}" 2>&1; then
+        log_success "Built ${project_name} successfully"
+        return 0
+    fi
+
+    # If that fails (task not found), try simple build without exclusions
+    log_warning "  Retrying build without quality check exclusions..."
+    if ./gradlew clean build -x test > "${log_file}" 2>&1; then
         log_success "Built ${project_name} successfully"
         return 0
     else
