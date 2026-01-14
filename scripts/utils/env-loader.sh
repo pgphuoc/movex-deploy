@@ -47,18 +47,24 @@ load_env() {
     
     log_info "Loading environment from: $env_file"
     
-    # Use grep to get only valid KEY=VALUE lines (key must start with letter/underscore)
-    # This filters out comments, empty lines, and invalid lines
-    local temp_env=$(mktemp)
-    grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$env_file" > "$temp_env" 2>/dev/null || true
-    
-    # Source the cleaned env file
-    set -a
-    source "$temp_env"
-    set +a
-    
-    # Cleanup
-    rm -f "$temp_env"
+    # Read line by line and export manually to handle special chars like $
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments
+        [[ -z "$line" ]] && continue
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Only process lines with KEY=VALUE format (key starts with letter/underscore)
+        if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+            # Extract key (everything before first =)
+            local key="${line%%=*}"
+            # Extract value (everything after first =)
+            local value="${line#*=}"
+            # Remove trailing whitespace from value
+            value="${value%"${value##*[![:space:]]}"}"
+            # Export without expansion
+            export "$key"="$value"
+        fi
+    done < "$env_file"
     
     log_success "Environment loaded successfully"
 }
