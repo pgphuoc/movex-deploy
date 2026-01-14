@@ -119,10 +119,10 @@ FAIL_COUNT=0
 for repo in "${ALL_REPOS[@]}"; do
     log_info "----------------------------------------"
     if clone_or_update_repo "$repo"; then
-        ((SUCCESS_COUNT++))
+        ((SUCCESS_COUNT++)) || true
     else
         log_error "Failed to clone/update: $repo"
-        ((FAIL_COUNT++))
+        ((FAIL_COUNT++)) || true
     fi
 done
 
