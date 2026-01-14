@@ -97,58 +97,7 @@ clone_or_update_repo() {
             else
                 log_warning "Using default branch for ${repo_name}"
             fi
-        fi
     fi
-}
-
-push_env_changes() {
-    local repo_name="$1"
-    local repo_dir="${SRC_DIR}/${repo_name}"
-    
-    if [[ ! -d "${repo_dir}/.git" ]]; then
-        log_warning "Not a git repo: ${repo_dir}"
-        return 1
-    fi
-    
-    cd "${repo_dir}"
-    
-    # Check if there are changes to .env file
-    if git status --porcelain | grep -q "\.env"; then
-        log_info "Committing .env changes for ${repo_name}..."
-        
-        git add .env 2>/dev/null || true
-        git add .env.* 2>/dev/null || true
-        
-        if git diff --cached --quiet; then
-            log_info "No .env changes to commit for ${repo_name}"
-            return 0
-        fi
-        
-        git commit -m "chore: Update environment configuration for deployment"
-        
-        log_info "Pushing changes to origin..."
-        if git push origin "$(git branch --show-current)"; then
-            log_success "Pushed .env changes for ${repo_name}"
-        else
-            log_error "Failed to push ${repo_name}"
-            return 1
-        fi
-    else
-        log_info "No .env changes for ${repo_name}"
-    fi
-}
-
-push_all_changes() {
-    log_info ""
-    log_info "=========================================="
-    log_info "  Pushing Environment Changes to Origin"
-    log_info "=========================================="
-    
-    for repo in "${ALL_REPOS[@]}"; do
-        push_env_changes "${repo}" || true
-    done
-    
-    log_success "All changes pushed to origin"
 }
 
 # -----------------------------------------------------------------------------

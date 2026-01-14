@@ -96,6 +96,11 @@ movex-deploy/
 ├── .env                         # (gitignored) Your secrets
 ├── .gitignore                   # Git ignore rules
 │
+├── config/                      # Environment configs (copied to projects)
+│   ├── frontend.env             # Frontend environment (VITE_* vars)
+│   ├── backend-common.env       # Backend shared config (DB, Redis)
+│   └── backend-auth.env         # Auth service specific config
+│
 ├── scripts/
 │   ├── 01-setup-server.sh       # Install Docker, Nginx, Java, Node.js
 │   ├── 02-clone-repos.sh        # Clone all repos from GitHub
@@ -115,6 +120,27 @@ movex-deploy/
 │
 └── security/
     └── firewall-rules.sh        # UFW firewall configuration
+```
+
+## ⚙️ Config Files
+
+Config files trong thư mục `config/` được copy vào các projects trước khi build:
+
+| Config File | Target | Description |
+|-------------|--------|-------------|
+| `frontend.env` | `movex-fe-masterdata/.env` | VITE_API_BASE_URL, etc. |
+| `backend-common.env` | `movex-be-*/.env` | DB, Redis connection |
+| `backend-auth.env` | `movex-be-auth/.env` | Auth-specific overrides |
+
+**Cách chỉnh sửa:**
+```bash
+# 1. Sửa config files
+nano config/frontend.env
+nano config/backend-common.env
+
+# 2. Chạy build - env sẽ được copy tự động
+./scripts/03-build-services.sh
+./scripts/04-build-frontend.sh
 ```
 
 ## 🔧 Configuration
@@ -139,7 +165,7 @@ movex-deploy/
 
 | Port | Service | Access |
 |------|---------|--------|
-| 22 | SSH | External |
+| 2226 | SSH | External |
 | 8080 | Nginx API Gateway | External |
 | 8084 | Nginx Frontend | External |
 | 8180 | System Service | Internal (Docker) |

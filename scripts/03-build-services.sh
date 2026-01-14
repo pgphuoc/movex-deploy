@@ -72,31 +72,6 @@ copy_backend_env() {
     fi
 }
 
-push_env_to_origin() {
-    local project_name="$1"
-    local project_dir="${SRC_DIR}/${project_name}"
-    
-    if [[ ! -d "${project_dir}/.git" ]]; then
-        return 0
-    fi
-    
-    cd "${project_dir}"
-    
-    # Check if there are changes to .env file
-    if git status --porcelain | grep -q "\.env"; then
-        log_info "Pushing .env changes for ${project_name}..."
-        
-        git add .env .env.* 2>/dev/null || true
-        
-        if ! git diff --cached --quiet; then
-            git commit -m "chore: Update environment configuration for deployment"
-            git push origin "$(git branch --show-current)" && \
-                log_success "Pushed ${project_name}" || \
-                log_warning "Failed to push ${project_name}"
-        fi
-    fi
-}
-
 build_project() {
     local project_name="$1"
     local project_dir="${SRC_DIR}/${project_name}"
@@ -271,19 +246,6 @@ for project in movex-be-system movex-be-auth movex-be-masterdata movex-be-oms mo
         log_error "Build failed for ${project}"
         exit 1
     fi
-done
-
-# -----------------------------------------------------------------------------
-# Step 5: Push Environment Changes to Origin
-# -----------------------------------------------------------------------------
-
-log_info ""
-log_info "=========================================="
-log_info "  Step 5: Push Environment Changes"
-log_info "=========================================="
-
-for project in movex-be-system movex-be-auth movex-be-masterdata movex-be-oms movex-be-tms; do
-    push_env_to_origin "$project"
 done
 
 # -----------------------------------------------------------------------------
