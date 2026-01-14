@@ -8,8 +8,8 @@
 set -euo pipefail
 
 # Load environment utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/utils/env-loader.sh"
+DEPLOY_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${DEPLOY_SCRIPT_DIR}/utils/env-loader.sh"
 
 require_root
 
@@ -46,7 +46,7 @@ log_info "=========================================="
 log_info "  Step 1: Clone/Update Repositories"
 log_info "=========================================="
 
-bash "${SCRIPT_DIR}/02-clone-repos.sh"
+bash "${DEPLOY_SCRIPT_DIR}/02-clone-repos.sh"
 
 # -----------------------------------------------------------------------------
 # Step 2: Start Infrastructure
@@ -96,7 +96,7 @@ log_info "=========================================="
 log_info "  Step 3: Build Backend Services"
 log_info "=========================================="
 
-bash "${SCRIPT_DIR}/03-build-services.sh"
+bash "${DEPLOY_SCRIPT_DIR}/03-build-services.sh"
 
 # -----------------------------------------------------------------------------
 # Step 4: Build Frontend
@@ -107,7 +107,7 @@ log_info "=========================================="
 log_info "  Step 4: Build Frontend"
 log_info "=========================================="
 
-bash "${SCRIPT_DIR}/04-build-frontend.sh"
+bash "${DEPLOY_SCRIPT_DIR}/04-build-frontend.sh"
 
 # -----------------------------------------------------------------------------
 # Step 5: Start Backend Services
@@ -178,7 +178,7 @@ log_info "=========================================="
 log_info "  Running Health Checks"
 log_info "=========================================="
 
-bash "${SCRIPT_DIR}/utils/health-check.sh"
+bash "${DEPLOY_SCRIPT_DIR}/utils/health-check.sh"
 
 # -----------------------------------------------------------------------------
 # Summary
