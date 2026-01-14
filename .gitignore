@@ -1,0 +1,29 @@
+# Environment files with secrets
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Cloned source directories
+src/
+
+# Build artifacts
+build/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.bak

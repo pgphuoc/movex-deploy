@@ -1,0 +1,296 @@
+# =============================================================================
+# MoveX Platform - Production Docker Compose
+# Description: Production-ready deployment configuration
+# Usage: docker compose -f docker-compose.prod.yml up -d
+# =============================================================================
+
+services:
+  # ==================== Infrastructure ====================
+
+  db:
+    image: postgres:16
+    container_name: movex_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-root}
+      - POSTGRES_PASSWORD=${DB_PASS:-root}
+      - POSTGRES_DB=system
+      - DB_LIST=system,auth,tms,oms,fms,accounting,master-data
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_movex_data:/var/lib/postgresql/data
+      - ../src/movex-be-migration/db-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-root} -d ${POSTGRES_DB:-system}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: movex_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-movex123}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+    ports:
+      - "6389:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-movex123}", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  # ==================== Backend Services ====================
+
+  system:
+    image: eclipse-temurin:23-jre-alpine
+    container_name: movex_system
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+      - DB_URL_SYSTEM=jdbc:postgresql://db:5432/system
+      - DB_USER_SYSTEM=${DB_USER:-root}
+      - DB_PASS_SYSTEM=${DB_PASS:-root}
+      - DB_URL_TENANT_AUTH=jdbc:postgresql://db:5432/auth
+      - DB_USER_TENANT_AUTH=${DB_USER:-root}
+      - DB_PASS_TENANT_AUTH=${DB_PASS:-root}
+      - DB_URL_TENANT_TMS=jdbc:postgresql://db:5432/tms
+      - DB_USER_TENANT_TMS=${DB_USER:-root}
+      - DB_PASS_TENANT_TMS=${DB_PASS:-root}
+      - DB_URL_TENANT_FMS=jdbc:postgresql://db:5432/fms
+      - DB_USER_TENANT_FMS=${DB_USER:-root}
+      - DB_PASS_TENANT_FMS=${DB_PASS:-root}
+      - DB_URL_TENANT_OMS=jdbc:postgresql://db:5432/oms
+      - DB_USER_TENANT_OMS=${DB_USER:-root}
+      - DB_PASS_TENANT_OMS=${DB_PASS:-root}
+      - DB_URL_TENANT_ACCOUNTING=jdbc:postgresql://db:5432/accounting
+      - DB_USER_TENANT_ACCOUNTING=${DB_USER:-root}
+      - DB_PASS_TENANT_ACCOUNTING=${DB_PASS:-root}
+      - DB_URL_TENANT_MASTER_DATA=jdbc:postgresql://db:5432/master-data
+      - DB_USER_TENANT_MASTER_DATA=${DB_USER:-root}
+      - DB_PASS_TENANT_MASTER_DATA=${DB_PASS:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+    ports:
+      - "8180:8080"
+    volumes:
+      - ../src/movex-be-system/build/libs:/app
+      - /var/log/movex/system:/logs
+    command: [ "java", "-jar", "/app/system-0.0.1-SNAPSHOT.jar" ]
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  masterdata:
+    image: eclipse-temurin:23-jre-alpine
+    container_name: movex_masterdata
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+      - DB_URL_SYSTEM=jdbc:postgresql://db:5432/master-data
+      - DB_USER_SYSTEM=${DB_USER:-root}
+      - DB_PASS_SYSTEM=${DB_PASS:-root}
+      - DB_URL_TENANT_MASTER_DATA=jdbc:postgresql://db:5432/master-data
+      - DB_USER_TENANT_MASTER_DATA=${DB_USER:-root}
+      - DB_PASS_TENANT_MASTER_DATA=${DB_PASS:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+    ports:
+      - "8181:8081"
+    volumes:
+      - ../src/movex-be-masterdata/build/libs:/app
+      - /var/log/movex/masterdata:/logs
+    command: [ "java", "-jar", "/app/master-data-0.0.1-SNAPSHOT.jar" ]
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  oms:
+    image: eclipse-temurin:23-jre-alpine
+    container_name: movex_oms
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      masterdata:
+        condition: service_healthy
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+      - DB_URL_SYSTEM=jdbc:postgresql://db:5432/oms
+      - DB_USER_SYSTEM=${DB_USER:-root}
+      - DB_PASS_SYSTEM=${DB_PASS:-root}
+      - DB_URL_TENANT_OMS=jdbc:postgresql://db:5432/oms
+      - DB_USER_TENANT_OMS=${DB_USER:-root}
+      - DB_PASS_TENANT_OMS=${DB_PASS:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+      - MASTERDATA_SERVICE_URL=http://masterdata:8081
+      - MASTERDATA_CONTEXT_PATH=/api/v1/master-data
+    ports:
+      - "8182:8082"
+    volumes:
+      - ../src/movex-be-oms/build/libs:/app
+      - /var/log/movex/oms:/logs
+    command: [ "java", "-jar", "/app/oms-0.0.1-SNAPSHOT.jar" ]
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  tms:
+    image: eclipse-temurin:23-jre-alpine
+    container_name: movex_tms
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+      - DB_URL_SYSTEM=jdbc:postgresql://db:5432/tms
+      - DB_USER_SYSTEM=${DB_USER:-root}
+      - DB_PASS_SYSTEM=${DB_PASS:-root}
+      - DB_URL_TENANT_TMS=jdbc:postgresql://db:5432/tms
+      - DB_USER_TENANT_TMS=${DB_USER:-root}
+      - DB_PASS_TENANT_TMS=${DB_PASS:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+    ports:
+      - "8183:8083"
+    volumes:
+      - ../src/movex-be-tms/build/libs:/app
+      - /var/log/movex/tms:/logs
+    command: [ "java", "-jar", "/app/movex-be-tms-0.0.1-SNAPSHOT.jar" ]
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  auth:
+    image: eclipse-temurin:23-jre-alpine
+    container_name: movex_auth
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m -XX:+UseG1GC
+      - DB_URL=jdbc:postgresql://db:5432/auth
+      - DB_USER=${DB_USER:-root}
+      - DB_PASS=${DB_PASS:-root}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    ports:
+      - "8185:9111"
+    volumes:
+      - ../src/movex-be-auth/build/libs:/app
+      - /var/log/movex/auth:/logs
+    command: [ "java", "-jar", "/app/movex-auth-0.0.1-SNAPSHOT.jar" ]
+    networks:
+      - movex-network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:9111/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# ==================== Volumes ====================
+volumes:
+  db_movex_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ==================== Networks ====================
+networks:
+  movex-network:
+    driver: bridge
