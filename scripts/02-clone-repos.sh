@@ -97,6 +97,7 @@ clone_or_update_repo() {
             else
                 log_warning "Using default branch for ${repo_name}"
             fi
+        fi
     fi
 }
 
