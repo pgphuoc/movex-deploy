@@ -48,19 +48,28 @@ load_env() {
     log_info "Loading environment from: $env_file"
     
     # Export variables from .env file (ignoring comments and empty lines)
-    set -a
-    while IFS='=' read -r key value; do
-        # Skip comments and empty lines
-        [[ "$key" =~ ^#.*$ ]] && continue
-        [[ -z "$key" ]] && continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines
+        [[ -z "$line" ]] && continue
+        # Skip comments (lines starting with #)
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        # Skip lines without = sign
+        [[ "$line" != *"="* ]] && continue
+        
+        # Extract key and value
+        key="${line%%=*}"
+        value="${line#*=}"
+        
         # Remove leading/trailing whitespace from key
         key=$(echo "$key" | xargs)
-        # Skip if key is empty after trimming
+        
+        # Skip if key is empty or starts with #
         [[ -z "$key" ]] && continue
-        # Export the variable (value may contain special chars)
+        [[ "$key" =~ ^# ]] && continue
+        
+        # Export the variable
         export "$key"="$value"
-    done < <(grep -v '^#' "$env_file" | grep -v '^[[:space:]]*$')
-    set +a
+    done < "$env_file"
     
     log_success "Environment loaded successfully"
 }
