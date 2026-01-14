@@ -98,8 +98,8 @@ build_project() {
     
     chmod +x ./gradlew
     
-    # Build project (skip tests for faster build)
-    if ./gradlew clean build -x test > "${log_file}" 2>&1; then
+    # Build project (skip tests and test compilation for faster build)
+    if ./gradlew clean build -x test -x compileTestJava > "${log_file}" 2>&1; then
         log_success "Built ${project_name} successfully"
         return 0
     else
