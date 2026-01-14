@@ -44,6 +44,34 @@ DB_PASS="${DB_PASS:-root}"
 # Functions
 # -----------------------------------------------------------------------------
 
+copy_backend_env() {
+    local project_name="$1"
+    local project_dir="${SRC_DIR}/${project_name}"
+    local common_env="${PROJECT_ROOT}/config/backend-common.env"
+    local service_env="${PROJECT_ROOT}/config/backend-${project_name#movex-be-}.env"
+    local target_env="${project_dir}/.env"
+    
+    log_info "Setting up environment for ${project_name}..."
+    
+    # Start with common config if exists
+    if [[ -f "${common_env}" ]]; then
+        log_info "  Copying common backend config..."
+        cp "${common_env}" "${target_env}"
+        
+        # Append service-specific config if exists
+        if [[ -f "${service_env}" ]]; then
+            log_info "  Appending service-specific config: $(basename ${service_env})"
+            echo "" >> "${target_env}"
+            echo "# Service-specific overrides" >> "${target_env}"
+            cat "${service_env}" >> "${target_env}"
+        fi
+        
+        log_success "Environment configured for ${project_name}"
+    else
+        log_warning "No backend config found at: ${common_env}"
+    fi
+}
+
 build_project() {
     local project_name="$1"
     local project_dir="${SRC_DIR}/${project_name}"
@@ -56,6 +84,11 @@ build_project() {
     
     log_info "Building ${project_name}..."
     cd "${project_dir}"
+    
+    # Copy environment config from config folder (skip for core and migration)
+    if [[ "${project_name}" != "movex-be-core" && "${project_name}" != "movex-be-migration" ]]; then
+        copy_backend_env "${project_name}"
+    fi
     
     # Check if gradlew exists
     if [[ ! -f "./gradlew" ]]; then
