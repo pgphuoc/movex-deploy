@@ -88,6 +88,32 @@ EOF
     log_success "Created: ${env_file}"
 }
 
+push_env_to_origin() {
+    local project_name="$1"
+    local project_dir="${SRC_DIR}/${project_name}"
+    
+    if [[ ! -d "${project_dir}/.git" ]]; then
+        return 0
+    fi
+    
+    cd "${project_dir}"
+    
+    # Check if there are changes to .env file
+    if git status --porcelain | grep -q "\.env"; then
+        log_info "Pushing .env changes for ${project_name}..."
+        
+        git add .env .env.* 2>/dev/null || true
+        
+        if ! git diff --cached --quiet; then
+            git commit -m "chore: Update environment configuration for deployment"
+            git push origin "$(git branch --show-current)" && \
+                log_success "Pushed ${project_name}" || \
+                log_warning "Failed to push ${project_name}"
+        fi
+    fi
+}
+
+
 build_frontend() {
     local project_name="$1"
     local project_dir="${SRC_DIR}/${project_name}"
@@ -204,6 +230,17 @@ if ! build_frontend "${PRIMARY_FE_PROJECT}"; then
     log_error "Frontend build failed"
     exit 1
 fi
+
+# -----------------------------------------------------------------------------
+# Push Environment Changes to Origin
+# -----------------------------------------------------------------------------
+
+log_info ""
+log_info "=========================================="
+log_info "  Pushing Environment Changes"
+log_info "=========================================="
+
+push_env_to_origin "${PRIMARY_FE_PROJECT}"
 
 # -----------------------------------------------------------------------------
 # Deploy to Web Directory
