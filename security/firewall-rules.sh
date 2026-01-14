@@ -23,7 +23,7 @@ log_info "=========================================="
 # External ports (allowed from anywhere)
 NGINX_API_PORT="${NGINX_API_PORT:-8080}"
 NGINX_FRONTEND_PORT="${NGINX_FRONTEND_PORT:-8084}"
-SSH_PORT="${SSH_PORT:-22}"
+SSH_PORT="${SSH_PORT:-2226}"
 
 # Internal ports (blocked from external access)
 INTERNAL_PORTS=(
