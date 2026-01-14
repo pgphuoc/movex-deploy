@@ -35,9 +35,31 @@ NGINX_API_PORT="${NGINX_API_PORT:-8080}"
 # Functions
 # -----------------------------------------------------------------------------
 
+copy_frontend_env() {
+    local project_dir="$1"
+    local config_env="${PROJECT_ROOT}/config/frontend.env"
+    local target_env="${project_dir}/.env"
+    
+    log_info "Setting up frontend environment..."
+    
+    # Check if custom frontend.env exists in config folder
+    if [[ -f "${config_env}" ]]; then
+        log_info "Copying frontend.env from config folder..."
+        
+        # Replace placeholder with actual server IP
+        sed "s/YOUR_SERVER_IP/${SERVER_IP:-localhost}/g" "${config_env}" > "${target_env}"
+        
+        log_success "Copied: ${config_env} -> ${target_env}"
+    else
+        log_warning "Config file not found: ${config_env}"
+        log_info "Generating production environment..."
+        create_production_env "${project_dir}"
+    fi
+}
+
 create_production_env() {
     local project_dir="$1"
-    local env_file="${project_dir}/.env.production"
+    local env_file="${project_dir}/.env"
     
     log_info "Creating production environment file..."
     
@@ -79,8 +101,8 @@ build_frontend() {
     log_info "Building ${project_name}..."
     cd "${project_dir}"
     
-    # Create production environment
-    create_production_env "${project_dir}"
+    # Copy frontend environment from config folder
+    copy_frontend_env "${project_dir}"
     
     # Install dependencies
     log_info "Installing dependencies..."
