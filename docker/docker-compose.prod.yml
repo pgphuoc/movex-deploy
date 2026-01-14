@@ -113,7 +113,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -153,7 +153,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/api/v1/master-data/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -197,7 +197,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/api/v1/oms/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -237,7 +237,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/api/v1/tms/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
