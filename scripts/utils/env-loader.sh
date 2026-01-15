@@ -35,16 +35,29 @@ log_error() {
 }
 
 # Load environment variables from .env file
+# Searches in order: PROJECT_ROOT/.env, PARENT_DIR/.env.dev, PARENT_DIR/.env
 load_env() {
-    local env_file="${PROJECT_ROOT}/.env"
-    
-    if [[ ! -f "$env_file" ]]; then
-        log_error ".env file not found at: $env_file"
-        log_info "Please copy .env.example to .env and configure it:"
-        log_info "  cp ${PROJECT_ROOT}/.env.example ${PROJECT_ROOT}/.env"
+    local env_file=""
+    local parent_dir="$(dirname "${PROJECT_ROOT}")"
+
+    # Search for .env file in multiple locations
+    if [[ -f "${PROJECT_ROOT}/.env" ]]; then
+        env_file="${PROJECT_ROOT}/.env"
+    elif [[ -f "${parent_dir}/.env.dev" ]]; then
+        env_file="${parent_dir}/.env.dev"
+    elif [[ -f "${parent_dir}/.env" ]]; then
+        env_file="${parent_dir}/.env"
+    fi
+
+    if [[ -z "$env_file" ]]; then
+        log_error ".env file not found. Searched locations:"
+        log_error "  - ${PROJECT_ROOT}/.env"
+        log_error "  - ${parent_dir}/.env.dev"
+        log_error "  - ${parent_dir}/.env"
+        log_info "Please create .env file in one of these locations"
         exit 1
     fi
-    
+
     log_info "Loading environment from: $env_file"
     
     # Read line by line and export manually to handle special chars like $
