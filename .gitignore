@@ -2,6 +2,10 @@
 .env
 .env.local
 .env.production
+.env.dev
+
+# Generated config files (from templates)
+config/generated/
 
 # Logs
 *.log

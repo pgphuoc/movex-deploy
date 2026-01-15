@@ -152,6 +152,69 @@ ensure_dir() {
     fi
 }
 
+# Replace environment variables in config files
+# Usage: replace_env_vars <source_file> <target_file>
+# Replaces patterns like ${VAR_NAME} or $VAR_NAME with actual values
+replace_env_vars() {
+    local source_file="$1"
+    local target_file="$2"
+
+    if [[ ! -f "$source_file" ]]; then
+        log_error "Source file not found: $source_file"
+        return 1
+    fi
+
+    log_info "Processing: $source_file -> $target_file"
+
+    # Use envsubst if available, otherwise use sed
+    if command_exists envsubst; then
+        envsubst < "$source_file" > "$target_file"
+    else
+        # Manual replacement using sed
+        cp "$source_file" "$target_file"
+
+        # Replace common variables
+        sed -i "s|\${SERVER_IP}|${SERVER_IP:-localhost}|g" "$target_file"
+        sed -i "s|\$SERVER_IP|${SERVER_IP:-localhost}|g" "$target_file"
+        sed -i "s|YOUR_SERVER_IP|${SERVER_IP:-localhost}|g" "$target_file"
+
+        sed -i "s|\${NGINX_API_PORT}|${NGINX_API_PORT:-8080}|g" "$target_file"
+        sed -i "s|\$NGINX_API_PORT|${NGINX_API_PORT:-8080}|g" "$target_file"
+
+        sed -i "s|\${NGINX_FRONTEND_PORT}|${NGINX_FRONTEND_PORT:-8084}|g" "$target_file"
+        sed -i "s|\$NGINX_FRONTEND_PORT|${NGINX_FRONTEND_PORT:-8084}|g" "$target_file"
+
+        sed -i "s|\${DB_HOST}|${DB_HOST:-localhost}|g" "$target_file"
+        sed -i "s|\${DB_PORT}|${DB_PORT:-5435}|g" "$target_file"
+        sed -i "s|\${DB_USER}|${DB_USER:-root}|g" "$target_file"
+        sed -i "s|\${DB_PASS}|${DB_PASS:-root}|g" "$target_file"
+
+        sed -i "s|\${REDIS_HOST}|${REDIS_HOST:-localhost}|g" "$target_file"
+        sed -i "s|\${REDIS_PORT}|${REDIS_PORT:-6389}|g" "$target_file"
+        sed -i "s|\${REDIS_PASSWORD}|${REDIS_PASSWORD:-movex123}|g" "$target_file"
+    fi
+
+    log_success "Processed: $target_file"
+}
+
+# Process all config files in config/ folder
+process_config_files() {
+    local config_dir="${PROJECT_ROOT}/config"
+    local output_dir="${1:-${PROJECT_ROOT}/config/generated}"
+
+    ensure_dir "$output_dir"
+
+    log_info "Processing config files..."
+
+    for config_file in "$config_dir"/*.env "$config_dir"/*.conf; do
+        [[ -f "$config_file" ]] || continue
+        local filename=$(basename "$config_file")
+        replace_env_vars "$config_file" "$output_dir/$filename"
+    done
+
+    log_success "All config files processed to: $output_dir"
+}
+
 # Export project root for use in other scripts
 export PROJECT_ROOT
 export SCRIPT_DIR
