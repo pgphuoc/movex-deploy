@@ -1,6 +1,7 @@
 # =============================================================================
 # MoveX Platform - Production Docker Compose
 # Description: Production-ready deployment configuration
+# Backend ports bound to localhost only (accessed via nginx)
 # Usage: docker compose -f docker-compose.prod.yml up -d
 # =============================================================================
 
@@ -17,7 +18,7 @@ services:
       - POSTGRES_DB=system
       - DB_LIST=system,auth,tms,oms,fms,accounting,master-data
     ports:
-      - "5435:5432"
+      - "127.0.0.1:5435:5432"
     volumes:
       - db_movex_data:/var/lib/postgresql/data
       - ../src/movex-be-migration/db-init:/docker-entrypoint-initdb.d
@@ -43,7 +44,7 @@ services:
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
     ports:
-      - "6389:6379"
+      - "127.0.0.1:6389:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -61,6 +62,7 @@ services:
           memory: 64M
 
   # ==================== Backend Services ====================
+  # All backend services bound to 127.0.0.1 only (accessed via nginx)
 
   system:
     image: eclipse-temurin:23-jre-alpine
@@ -99,7 +101,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
     ports:
-      - "8180:8080"
+      - "127.0.0.1:18080:8080"
     volumes:
       - ../src/movex-be-system/build/libs:/app
       - /var/log/movex/system:/logs
@@ -113,7 +115,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8080/api/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -139,7 +141,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
     ports:
-      - "8181:8081"
+      - "127.0.0.1:18081:8081"
     volumes:
       - ../src/movex-be-masterdata/build/libs:/app
       - /var/log/movex/masterdata:/logs
@@ -153,7 +155,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/api/v1/master-data/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/api/v1/master-data/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -183,7 +185,7 @@ services:
       - MASTERDATA_SERVICE_URL=http://masterdata:8081
       - MASTERDATA_CONTEXT_PATH=/api/v1/master-data
     ports:
-      - "8182:8082"
+      - "127.0.0.1:18082:8082"
     volumes:
       - ../src/movex-be-oms/build/libs:/app
       - /var/log/movex/oms:/logs
@@ -197,7 +199,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/api/v1/oms/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/api/v1/oms/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -223,7 +225,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
     ports:
-      - "8183:8083"
+      - "127.0.0.1:18083:8083"
     volumes:
       - ../src/movex-be-tms/build/libs:/app
       - /var/log/movex/tms:/logs
@@ -237,7 +239,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/api/v1/tms/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/api/v1/tms/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -263,7 +265,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-movex123}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     ports:
-      - "8185:9111"
+      - "127.0.0.1:18084:9111"
     volumes:
       - ../src/movex-be-auth/build/libs:/app
       - /var/log/movex/auth:/logs
@@ -277,7 +279,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:9111/actuator/health" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:9111/ || exit 0" ]
       interval: 30s
       timeout: 10s
       retries: 3
