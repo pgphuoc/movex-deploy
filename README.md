@@ -20,11 +20,11 @@ Scripts và configurations để deploy MoveX platform lên Ubuntu server.
                     │                                       │
    Internet ────────┼───► Port 8080 (Nginx API Gateway)    │
                     │           │                           │
-                    │           ├─► /api/system  → :8180   │
-                    │           ├─► /api/auth    → :8185   │
-                    │           ├─► /api/master-data → :8181│
-                    │           ├─► /api/oms     → :8182   │
-                    │           └─► /api/tms     → :8183   │
+                    │           ├─► /api/       → :18080   │
+                    │           ├─► /api/auth/  → :18084   │
+                    │           ├─► /api/master-data/ → :18081│
+                    │           ├─► /api/oms/   → :18082   │
+                    │           └─► /api/tms/   → :18083   │
                     │                                       │
    Internet ────────┼───► Port 8084 (Nginx Frontend)       │
                     │           │                           │
@@ -168,13 +168,13 @@ nano config/backend-common.env
 | 2226 | SSH | External |
 | 8080 | Nginx API Gateway | External |
 | 8084 | Nginx Frontend | External |
-| 8180 | System Service | Internal (Docker) |
-| 8181 | MasterData Service | Internal |
-| 8182 | OMS Service | Internal |
-| 8183 | TMS Service | Internal |
-| 8185 | Auth Service | Internal |
-| 5435 | PostgreSQL | Internal |
-| 6389 | Redis | Internal |
+| 18080 | System Service | Internal (127.0.0.1) |
+| 18081 | MasterData Service | Internal (127.0.0.1) |
+| 18082 | OMS Service | Internal (127.0.0.1) |
+| 18083 | TMS Service | Internal (127.0.0.1) |
+| 18084 | Auth Service | Internal (127.0.0.1) |
+| 5435 | PostgreSQL | Internal (127.0.0.1) |
+| 6389 | Redis | Internal (127.0.0.1) |
 
 ## 🔐 Security
 
